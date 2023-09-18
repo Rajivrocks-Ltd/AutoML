@@ -53,9 +53,10 @@ class SequentialModelBasedOptimization(object):
         configuration
         """
         ei = self.expected_improvement(self.model, self.theta_inc_performance, capital_theta)
-        # TODO: ei now contains for each element in capital_theta the expected improvement
-        # return the element in capital_theta with the highest expected improvement
-        raise NotImplementedError()
+        # Find the index of the configuration with the highest expected improvement
+        best_config_index = np.argmax(ei)
+        # Return the corresponding configuration
+        return capital_theta[best_config_index]
 
     @staticmethod
     def expected_improvement(model: sklearn.gaussian_process.GaussianProcessRegressor,
@@ -71,8 +72,22 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
-        # TODO: see slides lecture 2
-        raise NotImplementedError()
+        # Get the mean and standard deviation predictions from the Gaussian Process model
+        mean, std = model.predict(theta, return_std=True)
+
+        # Calculate the improvement over the current incumbent (f_star)
+        improvement = mean - f_star
+
+        # Avoid division by zero by adding a small constant to the standard deviation
+        std = np.maximum(std, 1e-9)
+
+        # Calculate the Z-score (number of standard deviations improvement is away from zero)
+        z = improvement / std
+
+        # Calculate the Expected Improvement (EI) using the cumulative distribution function of the standard normal
+        ei = improvement * norm.cdf(z) + std * norm.pdf(z)
+
+        return ei
 
     def update_runs(self, run: typing.Tuple[np.array, float]):
         """
@@ -85,5 +100,10 @@ class SequentialModelBasedOptimization(object):
         :param run: A 1D vector, each element represents a hyperparameter
         """
         self.capital_r.append(run)
-        # TODO: update theta_inc and theta_performance, if needed
-        raise NotImplementedError()
+        configuration, performance = run
+        self.capital_r.append(run)
+
+        # Update theta_inc and theta_inc_performance if the current run performed better
+        if self.theta_inc_performance is None or performance > self.theta_inc_performance:
+            self.theta_inc = configuration
+            self.theta_inc_performance = performance
