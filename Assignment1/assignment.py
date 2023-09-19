@@ -101,7 +101,6 @@ class SequentialModelBasedOptimization(object):
         """
         self.capital_r.append(run)
         configuration, performance = run
-        self.capital_r.append(run)
 
         # Update theta_inc and theta_inc_performance if the current run performed better
         if self.theta_inc_performance is None or performance > self.theta_inc_performance:
