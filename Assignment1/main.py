@@ -17,13 +17,24 @@ class AutoML:
         self.model = model
 
     #Perform hyperparameter search
-    def run(self, n_iter, n_sample, n_sample_start):
+    def run(self, n_iter: int, n_sample: int, n_sample_start: int, data_fraction: float = 1):
 
         dataset, model = self.dataset, self.model
 
         #Split the dataset in training and validation set
         data = sklearn.model_selection.train_test_split(
             dataset.data, dataset.target, test_size=0.33, random_state=1)
+
+        if(data_fraction != 1):
+
+            X_train, X_valid, y_train, y_valid = data
+
+            train_length = int(data_fraction * len(X_train))
+            valid_length = int(data_fraction * len(X_valid))
+            X_train, X_valid, y_train, y_valid = (X_train[:train_length], X_valid[:valid_length],
+                                                  y_train[:train_length], y_valid[:valid_length])
+
+            data = [X_train, X_valid, y_train, y_valid]
 
         #Initial hyperparameter vectors used to initialize the gaussian model
         configs = model.sample_configurations(n_sample_start)
@@ -35,7 +46,7 @@ class AutoML:
         self.accuracy_list = [smbo.theta_inc_performance]
 
         for idx in range(n_iter):
-            print('iteration %d/16' % idx)
+            print(f"Iteration {idx} of {n_iter}")
 
             #Fit the gaussian model to predict hyperparameter performance
             smbo.fit_model()
@@ -68,16 +79,15 @@ class AutoML:
 
 
 
-
-
 if __name__ == "__main__":
 
     dataset = sklearn.datasets.fetch_openml(name='diabetes', version=1)
-    model = MLPclassifier()
+
+    model = Adaboost()
 
     automl = AutoML(dataset, model)
 
-    automl.run(16, 1000, 10)
+    automl.run(2000, 1000, 5, 0.5)
     automl.plot()
 
 
