@@ -2,6 +2,7 @@
 import sklearn
 import numpy as np
 import matplotlib.pyplot as plt
+from time import perf_counter
 
 from assignment import SequentialModelBasedOptimization
 from adaboost import Adaboost
@@ -12,32 +13,34 @@ from perceptron import Perceptron
 # Class that performs hyperparameter search for given model on given dataset
 class AutoML:
 
-    def __init__(self, dataset, model):
+    def __init__(self, dataset, model, ):
         self.dataset = dataset
         self.model = model
+        self.data = sklearn.model_selection.train_test_split(
+            dataset.data, dataset.target, test_size=0.33, random_state=1)
+
+    def reduce_data(self, data_fraction):
+
+        # Split the dataset in training and validation set
+        if (data_fraction != 1):
+            X_train, x_valid, y_train, y_valid = self.data
+
+            train_length = int(data_fraction * len(X_train))
+            valid_length = int(data_fraction * len(x_valid))
+            X_train, x_valid, y_train, y_valid = (X_train[:train_length], x_valid[:valid_length],
+                                                  y_train[:train_length], y_valid[:valid_length])
+
+            self.data = [X_train, x_valid, y_train, y_valid]
+
 
     # Perform hyperparameter search
     def run_bo(self, n_iter: int, n_sample: int, n_sample_start: int, data_fraction: float = 1):
 
-        dataset, model = self.dataset, self.model
-
-        # Split the dataset in training and validation set
-        data = sklearn.model_selection.train_test_split(
-            dataset.data, dataset.target, test_size=0.33, random_state=1)
-
-        if (data_fraction != 1):
-            X_train, X_valid, y_train, y_valid = data
-
-            train_length = int(data_fraction * len(X_train))
-            valid_length = int(data_fraction * len(X_valid))
-            X_train, X_valid, y_train, y_valid = (X_train[:train_length], X_valid[:valid_length],
-                                                  y_train[:train_length], y_valid[:valid_length])
-
-            data = [X_train, X_valid, y_train, y_valid]
+        model = self.model
 
         # Initial hyperparameter vectors used to initialize the gaussian model
         configs = model.sample_configurations(n_sample_start)
-        sample_configs = [(config, model.optimize(config, data)) for config in configs]
+        sample_configs = [(config, model.optimize(config, self.data)) for config in configs]
 
         smbo = SequentialModelBasedOptimization()
         smbo.initialize(sample_configs)
@@ -54,10 +57,12 @@ class AutoML:
             theta_new = smbo.select_configuration(model.sample_configurations(n_sample))
 
             # Now find the performance of these hyperparameters
-            performance = model.optimize(theta_new, data)
+            performance = model.optimize(theta_new, self.data)
             smbo.update_runs((theta_new, performance))
 
             self.accuracy_list.append(smbo.theta_inc_performance)
+
+        print(smbo.theta_inc)
 
         self.smbo = smbo
 
@@ -76,12 +81,10 @@ class AutoML:
                 param_grid[key] = hp_range
 
         clf = sklearn.model_selection.GridSearchCV(self.model.get_algorithm(), param_grid)
-        clf.fit(self.dataset.data, self.dataset.target)
 
-        data = sklearn.model_selection.train_test_split(
-            dataset.data, dataset.target, test_size=0.33, random_state=1)
+        X_train, X_valid, y_train, y_valid = self.data
 
-        X_train, X_valid, y_train, y_valid = data
+        clf.fit(X_train, y_train)
 
         print(sklearn.metrics.accuracy_score(y_valid, clf.predict(X_valid)))
 
@@ -105,13 +108,26 @@ class AutoML:
 
 
 if __name__ == "__main__":
-    dataset = sklearn.datasets.fetch_openml(name='diabetes', version=1)
 
+    np.random.seed(1)
+
+    dataset = sklearn.datasets.fetch_openml(name='diabetes', version=1)
     model = MLPclassifier()
 
     automl = AutoML(dataset, model)
+    automl.reduce_data(1)
 
-    automl.run_gs([3, 3, 3])
+    # start = perf_counter()
+    # automl.run_gs([5, 5, 5])
+    # end = perf_counter()
+    #
+    # print(f"gridsearch: {end - start}")
 
-    automl.run_bo(20, 1000, 7, 1)
+    start = perf_counter()
+    automl.run_bo(300, 1000, 25)
+    end = perf_counter()
+    print(f"baysian: {end - start}")
+
+
+
     automl.plot()

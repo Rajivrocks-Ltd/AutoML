@@ -14,16 +14,20 @@ class Adaboost():
     def optimize(self, hp: list, data):
 
         X_train, X_valid, y_train, y_valid = data
-        lr = hp[0]
+        lr, n_estimators = hp[0], int(hp[1])
 
-        clf = AdaBoostClassifier(learning_rate=lr)
+        clf = AdaBoostClassifier(learning_rate=lr, n_estimators=n_estimators)
         clf.fit(X_train, y_train)
         return sklearn.metrics.accuracy_score(y_valid, clf.predict(X_valid))
 
     def sample_configurations(self, n: int):
         gamma = 10 ** np.random.uniform(-3, 0, n)
-        config = np.empty((n, 1))
+        n_estimators = np.random.randint(1, 1000, n)
+
+        config = np.empty((n, 2))
         config[:, 0] = gamma
+        config[:, 1] = n_estimators
+
         return config
 
     def get_algorithm(self):
