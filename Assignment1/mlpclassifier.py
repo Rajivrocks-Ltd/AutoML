@@ -8,7 +8,13 @@ from assignment import SequentialModelBasedOptimization
 
 class MLPclassifier():
     def __init__(self):
-        pass
+
+        self.param_dict = {
+            "learning_rate_init": (-3, 0, True),
+            "beta_1": (0, 0.99, False),
+            "beta_2": (0, 0.999, False)
+        }
+
     def optimize(self, hp: list, data):
 
         X_train, X_valid, y_train, y_valid = data
@@ -27,6 +33,9 @@ class MLPclassifier():
         config[:, 1] = beta1
         config[:, 2] = beta2
         return config
+
+    def get_algorithm(self):
+        return MLPClassifier()
 
 
 #data = sklearn.datasets.fetch_openml(name='mnist_784', version=1)

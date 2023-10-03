@@ -9,7 +9,7 @@ from assignment import SequentialModelBasedOptimization
 
 class Adaboost():
     def __init__(self):
-        pass
+        self.param_dict = {"learning_rate": (-3, 0, True)}
 
     def optimize(self, hp: list, data):
 
@@ -25,5 +25,9 @@ class Adaboost():
         config = np.empty((n, 1))
         config[:, 0] = gamma
         return config
+
+    def get_algorithm(self):
+
+        return AdaBoostClassifier()
 
 
