@@ -9,7 +9,10 @@ from assignment import SequentialModelBasedOptimization
 
 class Adaboost():
     def __init__(self):
-        self.param_dict = {"learning_rate": (-3, 0, True)}
+        self.param_dict = {
+            "learning_rate": (-3, 0, True, float),
+            "n_estimators": (1, 300, False, int)
+        }
 
     def optimize(self, hp: list, data):
 
@@ -22,7 +25,7 @@ class Adaboost():
 
     def sample_configurations(self, n: int):
         gamma = 10 ** np.random.uniform(-3, 0, n)
-        n_estimators = np.random.randint(1, 1000, n)
+        n_estimators = np.random.randint(1, 300, n)
 
         config = np.empty((n, 2))
         config[:, 0] = gamma

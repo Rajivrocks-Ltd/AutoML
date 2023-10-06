@@ -10,9 +10,10 @@ class MLPclassifier():
     def __init__(self):
 
         self.param_dict = {
-            "learning_rate_init": (-3, 0, True),
-            "beta_1": (0, 0.99, False),
-            "beta_2": (0, 0.999, False)
+            "learning_rate_init": (-3, 0, True, float),
+            "beta_1": (0, 0.99, False, float),
+            "beta_2": (0, 0.999, False, float),
+            "hidden_layer_sizes": (5, 300, False, int)
         }
 
     def optimize(self, hp: list, data):
