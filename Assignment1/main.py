@@ -62,8 +62,6 @@ class AutoML:
 
             self.accuracy_list.append(smbo.theta_inc_performance)
 
-        print(smbo.theta_inc)
-
         self.smbo = smbo
 
     def run_gs(self, n_hp: np.array):
@@ -74,13 +72,13 @@ class AutoML:
             value = model.param_dict[key]
 
             use_log = value[2]
-            hp_range = np.linspace(value[0], value[1], n_hp[i])
+            hp_range = np.linspace(value[0], value[1], n_hp[i], dtype= value[3])
             if use_log:
                 param_grid[key] = 10 ** hp_range
             else:
                 param_grid[key] = hp_range
 
-        clf = sklearn.model_selection.GridSearchCV(self.model.get_algorithm(), param_grid)
+        clf = sklearn.model_selection.GridSearchCV(self.model.get_algorithm(), param_grid, verbose=10)
 
         X_train, X_valid, y_train, y_valid = self.data
 
@@ -88,8 +86,24 @@ class AutoML:
 
         print(sklearn.metrics.accuracy_score(y_valid, clf.predict(X_valid)))
 
-    def run_rs(self):
-        pass
+    def run_rs(self, n_iter):
+
+        theta_best = model.sample_configurations(1)[0]
+        performance_best = model.optimize(theta_best, self.data)
+
+        for i in range(n_iter - 1):
+
+            print(f"Iteration {i} of {n_iter}")
+
+            theta_new = model.sample_configurations(1)[0]
+            performance = model.optimize(theta_new, self.data)
+
+            if(performance > performance_best):
+                theta_best = theta_new
+                performance_best = performance
+
+        return performance_best
+
 
     def plot(self):
 
@@ -109,25 +123,32 @@ class AutoML:
 
 if __name__ == "__main__":
 
-    np.random.seed(1)
+    #Adaboost config
+    #RS: 225, GS: [15,15], BO: 200, 1000, 25
 
-    dataset = sklearn.datasets.fetch_openml(name='diabetes', version=1)
-    model = MLPclassifier()
+    #MLP config
+    #RS: 256, GS: [4,4,4,4], BO: 231, 1000, 25
+
+    np.random.seed(5)
+
+    dataset = sklearn.datasets.fetch_openml(name='wdbc', version=1)
+    model = Adaboost()
 
     automl = AutoML(dataset, model)
     automl.reduce_data(1)
 
-    # start = perf_counter()
-    # automl.run_gs([5, 5, 5])
-    # end = perf_counter()
-    #
+    print(automl.run_rs(225))
+
+    start = perf_counter()
+    automl.run_gs([15, 15])
+    end = perf_counter()
+
     # print(f"gridsearch: {end - start}")
 
     start = perf_counter()
-    automl.run_bo(300, 1000, 25)
+    automl.run_bo(200, 1000, 25)
     end = perf_counter()
-    print(f"baysian: {end - start}")
-
-
+    # print(f"baysian: {end - start}")
+    #
 
     automl.plot()
