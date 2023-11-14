@@ -63,6 +63,7 @@ class AutoML:
             self.accuracy_list.append(smbo.theta_inc_performance)
 
         self.smbo = smbo
+        print(smbo.theta_inc_performance)
 
     def run_gs(self, n_hp: np.array):
 
@@ -78,7 +79,7 @@ class AutoML:
             else:
                 param_grid[key] = hp_range
 
-        clf = sklearn.model_selection.GridSearchCV(self.model.get_algorithm(), param_grid, verbose=10)
+        clf = sklearn.model_selection.GridSearchCV(self.model.get_algorithm(), param_grid, verbose=3)
 
         X_train, X_valid, y_train, y_valid = self.data
 
