@@ -30,7 +30,7 @@ argparser.add_argument("--dataset", default="omniglot", type=str, help="dataset 
 argparser.add_argument("--T", default=1, type=int, help="Number of inner gradient update steps (inner = on the support set)")
 argparser.add_argument("--img_size", type=int, default=28, help="Image size")
 argparser.add_argument("--rgb", action="store_true", default=False, help="Use RGB image instead of grayscale") 
-argparser.add_argument("--dev", default=None, help="GPU ID to use")
+argparser.add_argument("--dev", default=0, help="GPU ID to use")
 argparser.add_argument("--seed", default=0, type=int, help="seed to use")
 args = argparser.parse_args()
 
@@ -109,11 +109,12 @@ train_loader, val_loader, test_loader = train_val_test_loaders(**dataloader_conf
 if args.dev is None:
     args.dev = "cpu"
 else:
-    #args.dev = "cuda:0"
+    print(torch.cuda.device_count())
+    args.dev = "cuda:0"
     try:
         torch.cuda.set_device(args.dev)
     except:
-        print("Could not connect to GPU 0")
+        print(f"Could not connect to {args.dev}")
         import sys; sys.exit()
 
 # Define the model that we use
@@ -133,8 +134,10 @@ best_val_acc = -float("inf")
 best_parameters = [p.clone().detach() for p in model.parameters()]
 force_validation = False
 # Main loop
+print(len(train_loader))
 for bid, batch in enumerate(train_loader, start=1):
-    # support_inputs shape: (num_support_examples, num channels, img width, img height)
+    print(bid)
+    # support_  finputs shape: (num_support_examples, num channels, img width, img height)
     # support targets shape: (num_support_labels) 
 
     # query_inputs shape: (num_query_inputs, num channels, img width, img height)
@@ -144,6 +147,7 @@ for bid, batch in enumerate(train_loader, start=1):
     
     # compute model predictions on the query set, conditioned on the support set
     preds, loss = model.apply(support_inputs, support_targets, query_inputs, query_targets, training=True)
+    # print(loss.item())
 
     if bid % args.meta_batch_size == 0:
         # update the parameters of the model using Adam

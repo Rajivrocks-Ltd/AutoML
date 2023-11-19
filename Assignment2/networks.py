@@ -31,7 +31,7 @@ class ConvBlock(nn.Module):
         x = F.conv2d(x, weights[0], weights[1], padding=1) 
 
         # Manual batch normalization followed by ReLU
-        running_mean =  torch.zeros(self.out_channels).to(x.device)
+        running_mean = torch.zeros(self.out_channels).to(x.device)
         running_var = torch.ones(self.out_channels).to(x.device)
         x = F.batch_norm(x, running_mean, running_var, 
                          weights[2], weights[3], momentum=1, training=True)
