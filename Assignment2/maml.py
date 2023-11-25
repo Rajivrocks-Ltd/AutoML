@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from networks import Conv4
-import higher
 
 
 class MAML(nn.Module):
@@ -43,34 +42,24 @@ class MAML(nn.Module):
         # we use a custom forward function for our network. You can make predictions using
         # preds = self.network(input_data, weights=<the weights you want to use>)
 
-        inner_optimizer = torch.optim.SGD(self.network.parameters(), lr=self.inner_lr)
-        track_higher_grads = self.second_order
 
-        with higher.innerloop_ctx(self.network, inner_optimizer, copy_initial_weights=False,
-                                  track_higher_grads=track_higher_grads) as (fnet, diffopt):
+        fast_weights = [p.clone() for p in self.network.parameters()]
 
-            # Iterate over the updates (T) for inner-level learning
-            for _ in range(self.num_updates):
-                # Forward pass on the support set
-                support_preds = fnet(x_supp)
+        for _ in range(self.num_updates):
+            support_preds = self.network(x_supp, weights=fast_weights)
+            support_loss = self.inner_loss(support_preds, y_supp)
 
-                # Calculate the cross-entropy loss on the support set
-                support_loss = self.inner_loss(support_preds, y_supp)
+            grad = torch.autograd.grad(support_loss, fast_weights, create_graph=True)
 
-                # Compute gradients and perform a gradient descent step on the network parameters
-                diffopt.step(support_loss)
+            fast_weights = [fast_weights[i] - grad[i] * self.inner_lr for i in range(len(fast_weights))]
 
-            # At this point, the network has been updated using the support set
-            # Now, make predictions on the query set
-            query_preds = fnet(x_query)
 
-            # Calculate the cross-entropy loss on the query set
-            query_loss = self.inner_loss(query_preds, y_query)
-            # grads = torch.autograd.grad(query_loss, fnet.parameters(time=0), create_graph=True)
-            # query_preds = self.network(x_query, weights=grads)
+        query_preds = self.network(x_query, weights=fast_weights)
+        query_loss = self.inner_loss(query_preds, y_query)
 
-            # Backward pass for computing gradients (only if in training mode)
-            if training:
-                query_loss.backward()
+
+        #Backward pass for computing gradients (only if in training mode)
+        if training:
+            query_loss.backward()
 
         return query_preds, query_loss
